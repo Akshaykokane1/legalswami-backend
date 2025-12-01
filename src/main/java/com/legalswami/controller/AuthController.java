@@ -25,11 +25,6 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Very simple placeholder Google login endpoint.
-     * NOTE: This does not verify Google ID token cryptographically.
-     * For production, you MUST verify the token with Google's public keys.
-     */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
         try {
@@ -41,7 +36,6 @@ public class AuthController {
 
             String userId = request.getGemail().toLowerCase();
 
-            // find or create
             Optional<User> existing = userRepository.findById(userId);
             User user = existing.orElseGet(() -> {
                 User u = new User();
@@ -63,7 +57,6 @@ public class AuthController {
                     "emailVerified", user.isEmailVerified()
             ));
         } catch (Exception ex) {
-            // log full stack trace so Render logs show it
             log.error("Exception in /api/auth/google", ex);
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "Internal Server Error",
@@ -72,7 +65,6 @@ public class AuthController {
         }
     }
 
-    // Simple test endpoint to create a dummy user (optional)
     @PostMapping("/test/createuser")
     public ResponseEntity<?> createTestUser() {
         try {
