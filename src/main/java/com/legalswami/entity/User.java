@@ -3,6 +3,7 @@ package com.legalswami.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import java.time.Instant;
 
 @Entity
@@ -14,13 +15,11 @@ public class User {
 
     private String name;
     private String email;
-    private String password;
     private boolean emailVerified;
     private Instant createdAt;
     private Instant lastLogin;
 
-    public User() {}
-
+    // getters / setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -29,9 +28,6 @@ public class User {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
 
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
