@@ -1,19 +1,20 @@
 package com.legalswami.controller;
 
 import com.legalswami.dto.GoogleLoginRequest;
+import com.legalswami.dto.RegisterRequest;
 import com.legalswami.entity.User;
 import com.legalswami.repository.UserRepository;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // for quick testing; restrict in production
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -22,112 +23,77 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    // ----------------------------------------------------------------------
-    // 1) Google Login (dummy endpoint)
-    // ----------------------------------------------------------------------
+    /**
+     * Simple register endpoint.
+     * Expects JSON:
+     * { "name": "...", "email": "...", "password": "..." }
+     */
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+        if (req.getEmail() == null || req.getEmail().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "email is required"));
+        }
+
+        // check if email already exists (repository should provide findByEmail)
+        Optional<User> existing = userRepository.findByEmail(req.getEmail().toLowerCase());
+        if (existing.isPresent()) {
+            return ResponseEntity.status(409).body(Map.of("error", "email_exists"));
+        }
+
+        // Create user (simple fields). In production: hash the password
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setName(req.getName() != null ? req.getName() : "User");
+        user.setEmail(req.getEmail().toLowerCase());
+        user.setPassword(req.getPassword()); // **IMPORTANT:** hash in real app!
+        user.setEmailVerified(false);
+        user.setCreatedAt(Instant.now());
+        user.setLastLogin(Instant.now());
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "name", user.getName()
+        ));
+    }
+
+    /**
+     * Placeholder Google login endpoint (example).
+     * Accepts a GoogleLoginRequest with an "email" field at minimum.
+     */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
-
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "email is required"));
         }
 
-        String userId = request.getEmail().toLowerCase();
+        String email = request.getEmail().toLowerCase();
+        Optional<User> maybeUser = userRepository.findByEmail(email);
 
-        User user = userRepository.findById(userId).orElseGet(() ->
-                new User(
-                        userId,
-                        request.getName() != null ? request.getName() : "User",
-                        request.getEmail(),
-                        true,
-                        Instant.now()
-                )
-        );
+        User user = maybeUser.orElseGet(() -> {
+            // create a new user if not exists
+            User u = new User();
+            u.setId(UUID.randomUUID().toString());
+            u.setName(request.getName() != null ? request.getName() : "GoogleUser");
+            u.setEmail(email);
+            u.setEmailVerified(true);
+            u.setCreatedAt(Instant.now());
+            u.setLastLogin(Instant.now());
+            return userRepository.save(u);
+        });
 
+        // update last login time
         user.setLastLogin(Instant.now());
         userRepository.save(user);
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "status", "success",
-                        "id", user.getId(),
-                        "name", user.getName(),
-                        "email", user.getEmail(),
-                        "emailVerified", user.isEmailVerified()
-                )
-        );
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "name", user.getName(),
+                "emailVerified", user.isEmailVerified()
+        ));
     }
 
-    // ----------------------------------------------------------------------
-    // 2) REGISTER (This is the endpoint your frontend calls)
-    // ----------------------------------------------------------------------
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-
-        String name = body.get("name");
-        String email = body.get("email");
-        String password = body.get("password");
-
-        if (email == null || email.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "email is required"));
-        }
-
-        // userId = email lowercase
-        String userId = email.toLowerCase();
-
-        User newUser = new User(
-                userId,
-                name,
-                email,
-                true,
-                Instant.now()
-        );
-
-        userRepository.save(newUser);
-
-        return ResponseEntity.status(201).body(
-                Map.of(
-                        "status", "created",
-                        "id", newUser.getId(),
-                        "name", newUser.getName(),
-                        "email", newUser.getEmail()
-                )
-        );
-    }
-
-    // ----------------------------------------------------------------------
-    // 3) LOGIN (optional simple login)
-    // ----------------------------------------------------------------------
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-
-        String email = body.get("email");
-
-        if (email == null || email.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "email is required"));
-        }
-
-        String id = email.toLowerCase();
-
-        return userRepository.findById(id)
-                .map(user ->
-                        ResponseEntity.ok(
-                                Map.of(
-                                        "status", "success",
-                                        "id", user.getId(),
-                                        "name", user.getName(),
-                                        "email", user.getEmail()
-                                )
-                        )
-                )
-                .orElse(ResponseEntity.status(404).body(Map.of("error", "User not found")));
-    }
-
-    // ----------------------------------------------------------------------
-    // 4) Test endpoint
-    // ----------------------------------------------------------------------
-    @GetMapping("/test")
-    public ResponseEntity<?> test() {
-        return ResponseEntity.ok(Map.of("status", "working", "time", Instant.now().toString()));
-    }
 }
