@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // for quick testing; restrict in production
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -23,29 +23,21 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Simple register endpoint.
-     * Expects JSON:
-     * { "name": "...", "email": "...", "password": "..." }
-     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         if (req.getEmail() == null || req.getEmail().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "email is required"));
         }
-
-        // check if email already exists (repository should provide findByEmail)
         Optional<User> existing = userRepository.findByEmail(req.getEmail().toLowerCase());
         if (existing.isPresent()) {
             return ResponseEntity.status(409).body(Map.of("error", "email_exists"));
         }
 
-        // Create user (simple fields). In production: hash the password
         User user = new User();
         user.setId(UUID.randomUUID().toString());
         user.setName(req.getName() != null ? req.getName() : "User");
         user.setEmail(req.getEmail().toLowerCase());
-        user.setPassword(req.getPassword()); // **IMPORTANT:** hash in real app!
+        user.setPassword(req.getPassword()); // hash in real app
         user.setEmailVerified(false);
         user.setCreatedAt(Instant.now());
         user.setLastLogin(Instant.now());
@@ -59,10 +51,6 @@ public class AuthController {
         ));
     }
 
-    /**
-     * Placeholder Google login endpoint (example).
-     * Accepts a GoogleLoginRequest with an "email" field at minimum.
-     */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
@@ -73,7 +61,6 @@ public class AuthController {
         Optional<User> maybeUser = userRepository.findByEmail(email);
 
         User user = maybeUser.orElseGet(() -> {
-            // create a new user if not exists
             User u = new User();
             u.setId(UUID.randomUUID().toString());
             u.setName(request.getName() != null ? request.getName() : "GoogleUser");
@@ -84,7 +71,6 @@ public class AuthController {
             return userRepository.save(u);
         });
 
-        // update last login time
         user.setLastLogin(Instant.now());
         userRepository.save(user);
 
