@@ -1,8 +1,8 @@
 package com.legalswami.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
@@ -20,8 +20,6 @@ public class User {
     private Instant lastLogin;
 
     public User() {}
-
-    // getters & setters
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
