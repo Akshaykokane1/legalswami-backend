@@ -1,15 +1,12 @@
 package com.legalswami.dto;
 
 public class GoogleLoginRequest {
-    private String name;
-    private String email;
-    private String idToken; // optional if you verify token
+    private String gemail;
+    private String gname;
 
-    public GoogleLoginRequest() {}
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getIdToken() { return idToken; }
-    public void setIdToken(String idToken) { this.idToken = idToken; }
+    public String getGemail() { return gemail; }
+    public void setGemail(String gemail) { this.gemail = gemail; }
+
+    public String getGname() { return gname; }
+    public void setGname(String gname) { this.gname = gname; }
 }
